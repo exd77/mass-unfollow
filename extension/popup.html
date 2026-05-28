@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Menu Bar -->
+  <div class="menubar">
+    <span class="menu-icon">&#63743;</span>
+    <span class="menu-item">File</span>
+    <span class="menu-item">Edit</span>
+    <span class="menu-item">View</span>
+    <span class="menu-item">Help</span>
+  </div>
+
+  <!-- Main Window -->
+  <div class="window">
+    <div class="titlebar">
+      <span class="titlebar-title">X Unfollower</span>
+      <div class="titlebar-btns">
+        <span class="tb-btn">−</span>
+        <span class="tb-btn">◻</span>
+        <span class="tb-btn close">✕</span>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <!-- Session Section -->
+      <div class="section">
+        <div class="section-title">Session</div>
+        
+        <!-- Session Source Indicator -->
+        <div class="session-source" id="session-source" style="display:none;"></div>
+        
+        <!-- Credentials (shown for manual fallback) -->
+        <div class="row">
+          <input type="password" id="auth-token" placeholder="auth_token" class="input">
+          <input type="password" id="ct0" placeholder="ct0" class="input">
+          <button id="btn-save" class="btn btn-small">Save</button>
+        </div>
+        
+        <!-- Status -->
+        <div class="status-row">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Checking session...</span>
+          <button id="btn-refresh" class="btn btn-tiny" title="Refresh session">↻</button>
+        </div>
+        <div class="status-hint" id="status-hint"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="section">
+        <div class="row">
+          <button id="btn-fetch" class="btn btn-primary" disabled>
+            <span class="btn-icon">↓</span> Fetch Following
+          </button>
+          <button id="btn-unfollow" class="btn btn-danger" disabled>
+            <span class="btn-icon">✕</span> Unfollow
+          </button>
+        </div>
+        <div class="row row-options">
+          <label>Days:</label>
+          <select id="days-threshold" class="select">
+            <option value="30">30</option>
+            <option value="60">60</option>
+            <option value="90" selected>90</option>
+            <option value="180">180</option>
+            <option value="365">365</option>
+          </select>
+          <label class="checkbox-label">
+            <input type="checkbox" id="skip-active"> Skip active
+          </label>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="section" id="progress-section" style="display:none;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">Loading...</div>
+      </div>
+
+      <!-- Results -->
+      <div class="section results-section" id="results-section" style="display:none;">
+        <div class="tabs">
+          <button class="tab active" data-tab="inactive">Inactive <span id="count-inactive">0</span></button>
+          <button class="tab" data-tab="active">Active <span id="count-active">0</span></button>
+          <button class="tab" data-tab="unknown">Unknown <span id="count-unknown">0</span></button>
+        </div>
+        <div class="list" id="user-list"></div>
+      </div>
+
+      <!-- Summary -->
+      <div class="section summary" id="summary-section" style="display:none;">
+        <div class="summary-row">
+          <span>Total:</span>
+          <span id="total-count">0</span>
+        </div>
+        <div class="summary-row">
+          <span>Selected:</span>
+          <span id="selected-count">0</span>
+        </div>
+        <div class="summary-row highlight">
+          <span>Will unfollow:</span>
+          <span id="unfollow-count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="statusbar">
+      <span id="footer-status">Ready</span>
+      <span>v1.0.0</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
