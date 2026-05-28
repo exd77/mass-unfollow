@@ -396,7 +396,7 @@ class MassUnfollow:
             json.dump(output, f, indent=2, default=str)
         self.log(f"💾 Saved to {self.output_file}")
         
-    async def run(self, user_id: str = None):
+    async def run(self, user_id: str = None, auto_confirm: bool = False):
         """Main execution"""
         start_time = time.time()
         
@@ -438,7 +438,10 @@ class MassUnfollow:
         
         if not self.dry_run:
             print(f"\n⚠️ This will unfollow {len(inactive)} accounts. Cannot be undone!")
-            confirm = input("\nType 'yes' to confirm: ")
+            if auto_confirm:
+                confirm = 'yes'
+            else:
+                confirm = input("\nType 'yes' to confirm: ")
             if confirm.lower() == 'yes':
                 await self.unfollow_all(inactive)
                 self.save_results(self.following)
@@ -446,7 +449,10 @@ class MassUnfollow:
                 self.log("❌ Cancelled")
         else:
             print(f"\n💡 DRY RUN - No accounts were unfollowed")
-            confirm = input("Start unfollowing now? (yes/no): ")
+            if auto_confirm:
+                confirm = 'yes'
+            else:
+                confirm = input("Start unfollowing now? (yes/no): ")
             if confirm.lower() == 'yes':
                 self.dry_run = False
                 await self.unfollow_all(inactive)
@@ -468,6 +474,8 @@ def main():
                        help='Days threshold (default: 90)')
     parser.add_argument('--dry-run', action='store_true',
                        help='Show inactive accounts without unfollowing')
+    parser.add_argument('--yes', '-y', action='store_true',
+                       help='Auto-confirm unfollow without prompt')
     parser.add_argument('--output', '-o', help='Save results to JSON file')
     
     args = parser.parse_args()
@@ -489,7 +497,7 @@ def main():
         output_file=args.output,
     )
     
-    asyncio.run(tool.run(user_id=args.user_id))
+    asyncio.run(tool.run(user_id=args.user_id, auto_confirm=args.yes))
 
 
 if __name__ == '__main__':
