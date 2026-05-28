@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './index.css'
 
-// API base URL — adjust for production
-const API_BASE = '/api'
+// API base — same origin for production
+const API_BASE = ''
 
 // Helper functions
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -36,6 +36,10 @@ export default function App() {
   const [toast, setToast] = useState({ visible: false, text: '' })
   const [threshold, setThreshold] = useState(90)
   const [showGuide, setShowGuide] = useState(true)
+  const [showLoginForm, setShowLoginForm] = useState(false)
+  const [authToken, setAuthToken] = useState('')
+  const [ct0, setCt0] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
   
   const progressInterval = useRef(null)
   const toastTimer = useRef(null)
@@ -51,7 +55,7 @@ export default function App() {
   const checkLogin = async () => {
     setStatus({ state: 'checking', text: 'Checking…' })
     try {
-      const res = await fetch(`${API_BASE}/ping`)
+      const res = await fetch(`${API_BASE}/api/ping`)
       const data = await res.json()
       if (data.success && data.loggedIn) {
         setLoggedIn(true)
@@ -71,10 +75,48 @@ export default function App() {
     }
   }
 
+  // Login with cookies
+  const loginWithCookies = async () => {
+    if (!authToken || !ct0) {
+      showToast('Please enter both auth_token and ct0', 3000)
+      return
+    }
+
+    setLoggingIn(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authToken, ct0 })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setLoggedIn(true)
+        setShowLoginForm(false)
+        setStatus({ 
+          state: 'ok', 
+          text: `Logged in as @${data.username} · Token ready` 
+        })
+        setShowGuide(false)
+        showToast(`Connected as @${data.username}`)
+        await loadCachedData()
+      } else {
+        showToast(data.error || 'Login failed', 5000)
+        setStatus({ state: 'error', text: data.error || 'Login failed' })
+      }
+    } catch (err) {
+      showToast('Login request failed', 5000)
+      setStatus({ state: 'error', text: 'Login request failed' })
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
   // Load cached following list
   const loadCachedData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/cache`)
+      const res = await fetch(`${API_BASE}/api/cache`)
       const data = await res.json()
       if (data.success && data.followingList?.length) {
         setAllUsers(data.followingList)
@@ -95,7 +137,7 @@ export default function App() {
 
     try {
       // Start fetch
-      const res = await fetch(`${API_BASE}/fetch`, { method: 'POST' })
+      const res = await fetch(`${API_BASE}/api/fetch`, { method: 'POST' })
       const data = await res.json()
 
       if (!data.success) {
@@ -107,7 +149,7 @@ export default function App() {
       // Poll for progress
       progressInterval.current = setInterval(async () => {
         try {
-          const progRes = await fetch(`${API_BASE}/progress`)
+          const progRes = await fetch(`${API_BASE}/api/progress`)
           const progData = await progRes.json()
           
           if (progData.phase === 'fetch_page') {
@@ -134,7 +176,7 @@ export default function App() {
             setProgress({ phase: 'done', percent: 100, text: 'Complete!' })
             
             // Load results
-            const cacheRes = await fetch(`${API_BASE}/cache`)
+            const cacheRes = await fetch(`${API_BASE}/api/cache`)
             const cacheData = await cacheRes.json()
             if (cacheData.success) {
               setAllUsers(cacheData.followingList || [])
@@ -159,7 +201,7 @@ export default function App() {
   // Cancel fetch
   const cancelFetch = async () => {
     try {
-      await fetch(`${API_BASE}/cancel`, { method: 'POST' })
+      await fetch(`${API_BASE}/api/cancel`, { method: 'POST' })
       if (progressInterval.current) clearInterval(progressInterval.current)
       setIsFetching(false)
       setProgress({ phase: '', percent: 0, text: '' })
@@ -178,7 +220,7 @@ export default function App() {
     setUnfollowProgress({ done: 0, total: ids.length })
 
     try {
-      const res = await fetch(`${API_BASE}/unfollow`, {
+      const res = await fetch(`${API_BASE}/api/unfollow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userIds: ids })
@@ -194,7 +236,7 @@ export default function App() {
       // Poll for progress
       const unfollowInterval = setInterval(async () => {
         try {
-          const progRes = await fetch(`${API_BASE}/unfollow-progress`)
+          const progRes = await fetch(`${API_BASE}/api/unfollow-progress`)
           const progData = await progRes.json()
           
           setUnfollowProgress({ done: progData.done, total: progData.total })
@@ -205,7 +247,7 @@ export default function App() {
             setSelectedIds(new Set())
             
             // Remove unfollowed from list
-            const cacheRes = await fetch(`${API_BASE}/cache`)
+            const cacheRes = await fetch(`${API_BASE}/api/cache`)
             const cacheData = await cacheRes.json()
             if (cacheData.success) {
               setAllUsers(cacheData.followingList || [])
@@ -231,7 +273,7 @@ export default function App() {
   // Cancel unfollow
   const cancelUnfollow = async () => {
     try {
-      await fetch(`${API_BASE}/cancel-unfollow`, { method: 'POST' })
+      await fetch(`${API_BASE}/api/cancel-unfollow`, { method: 'POST' })
       setIsUnfollowing(false)
       showToast('Unfollow cancelled')
     } catch (err) {
@@ -242,7 +284,7 @@ export default function App() {
   // Clear cache
   const clearCache = async () => {
     try {
-      await fetch(`${API_BASE}/cache`, { method: 'DELETE' })
+      await fetch(`${API_BASE}/api/cache`, { method: 'DELETE' })
       setAllUsers([])
       setSelectedIds(new Set())
       setIsEnriched(false)
@@ -493,14 +535,76 @@ export default function App() {
             {/* Not logged in */}
             {!loggedIn && status.state !== 'checking' && (
               <div className="login-section">
-                <div className="login-title">Not Connected</div>
+                <div className="login-title">Connect to X</div>
                 <div className="login-description">
-                  Open x.com in your browser and log in first.<br />
-                  Then refresh this page.
+                  Paste your X session cookies to connect.
                 </div>
-                <button className="toolbar-btn primary" onClick={checkLogin}>
-                  Retry Connection
-                </button>
+                
+                {!showLoginForm ? (
+                  <button className="toolbar-btn primary" onClick={() => setShowLoginForm(true)}>
+                    Login with Cookies
+                  </button>
+                ) : (
+                  <div style={{ padding: '20px', textAlign: 'left' }}>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', marginBottom: '4px', fontFamily: 'var(--font-system)' }}>
+                        auth_token
+                      </label>
+                      <input 
+                        type="text" 
+                        value={authToken}
+                        onChange={e => setAuthToken(e.target.value)}
+                        placeholder="Paste auth_token value"
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '11px',
+                          border: '1px inset var(--mac-dark-gray)'
+                        }}
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', marginBottom: '4px', fontFamily: 'var(--font-system)' }}>
+                        ct0
+                      </label>
+                      <input 
+                        type="text" 
+                        value={ct0}
+                        onChange={e => setCt0(e.target.value)}
+                        placeholder="Paste ct0 value"
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '11px',
+                          border: '1px inset var(--mac-dark-gray)'
+                        }}
+                      />
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button className="toolbar-btn" onClick={() => setShowLoginForm(false)}>
+                        Cancel
+                      </button>
+                      <button 
+                        className="toolbar-btn primary" 
+                        onClick={loginWithCookies}
+                        disabled={loggingIn || !authToken || !ct0}
+                      >
+                        {loggingIn ? 'Connecting…' : 'Connect'}
+                      </button>
+                    </div>
+                    
+                    <div style={{ marginTop: '16px', fontSize: '10px', color: 'var(--mac-dark-gray)', fontFamily: 'var(--font-ui)', lineHeight: '1.5' }}>
+                      <strong>How to get cookies:</strong><br />
+                      1. Open x.com and log in<br />
+                      2. Press F12 → Application → Cookies<br />
+                      3. Copy "auth_token" and "ct0" values
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
