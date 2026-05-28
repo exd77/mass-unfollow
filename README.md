@@ -1,75 +1,59 @@
 # Mass Unfollow
 
-A web app for cleaning up your X/Twitter following list. Finds inactive accounts and lets you unfollow them in bulk.
+Find and unfollow inactive X/Twitter accounts.
 
-Built with a classic Macintosh UI because why not.
+**Note:** The web server version doesn't work because X blocks authenticated requests from datacenter IPs. Use the browser userscript instead — it runs directly in your browser using your IP.
 
-## Setup
+## Installation (Tampermonkey)
 
-```bash
-# Install dependencies
-cd frontend && npm install
-cd ../backend && npm install
-
-# Build frontend for production
-cd frontend && npm run build
-
-# Start the server
-cd ../backend && npm start
-```
-
-Server runs on port 3000 by default. Change with `PORT=xxxx npm start`.
+1. Install [Tampermonkey](https://www.tampermonkey.net/) browser extension
+2. Open `mass-unfollow.user.js` in this repo
+3. Copy the entire contents
+4. In Tampermonkey, create a new script and paste the code
+5. Save
+6. Go to x.com — you'll see a blue button on the right side
 
 ## Usage
 
-1. Open the app in your browser
-2. Paste your X session cookies (auth_token and ct0 from browser DevTools)
-3. Hit "Load Following" and wait
-4. Filter by inactivity threshold
-5. Select accounts to unfollow
-6. Click Unfollow
+1. Open x.com and log in
+2. Click the blue button on the right to open Mass Unfollow
+3. Click "Load Following" and wait
+4. Filter by tabs: All, No Tweets, Unknown, Inactive, Active
+5. Set inactivity threshold (30/90/180/365 days)
+6. Click accounts to select them
+7. Click "Unfollow" to remove them
 
-That's it.
+## Features
+
+- Analyzes your following list
+- Checks last tweet date for each account
+- Categorizes: No Tweets, Unknown, Inactive, Active
+- Bulk select and unfollow
+- Rate limit handling (auto-pause and resume)
+- All data stays in your browser
 
 ## How it works
 
-Uses X's internal v1.1 REST API. Same endpoints the website uses, nothing fancy.
+Uses X's internal v1.1 REST API directly from your browser:
 
-- `/1.1/friends/list.json` — get your following list
-- `/1.1/statuses/user_timeline.json` — check when they last posted
-- `/1.1/friendships/destroy.json` — unfollow
+- `GET /1.1/friends/list.json` — your following list
+- `GET /1.1/statuses/user_timeline.json` — last tweet date
+- `POST /1.1/friendships/destroy.json` — unfollow
 
-Rate limits are handled automatically. It pauses when needed and resumes.
+Since it runs in your browser, it uses your session cookies and IP address. No server needed.
 
-## Getting your session cookies
+## Web Server (not recommended)
 
-1. Open x.com in your browser and log in
-2. Open DevTools (F12)
-3. Go to Application > Cookies
-4. Copy `auth_token` and `ct0`
+The backend server at `/backend` exists but won't work for authenticated X API calls because X blocks datacenter IPs. It's included for reference only.
 
-Don't share these with anyone. They're basically your login session.
+## Files
 
-## Tech stack
-
-- React + Vite on the frontend
-- Express on the backend  
-- No database, no external services, no telemetry
-- CSS is custom, no frameworks
-
-## Self-hosting
-
-Works fine on any VPS. Just open port 3000 in your firewall.
-
-For production you probably want nginx in front with HTTPS. That's on you.
-
-## Notes
-
-- Large following lists (5000+) take a while. Be patient.
-- Protected accounts can't be checked for activity.
-- X might rate limit you if you unfollow too aggressively. Keep the delays in.
-- This uses internal APIs that could break if X decides to change them.
+```
+mass-unfollow.user.js  — Tampermonkey userscript (main file)
+backend/               — Express server (reference only, auth issues)
+frontend/              — React web app (reference only, auth issues)
+```
 
 ## License
 
-MIT. Do whatever you want with it.
+MIT
