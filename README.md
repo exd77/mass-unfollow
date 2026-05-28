@@ -1,57 +1,74 @@
 # Mass Unfollow
 
-Find and unfollow inactive X/Twitter accounts.
+Find and unfollow inactive X/Twitter accounts. Two versions available:
 
-**Note:** The web server version doesn't work because X blocks authenticated requests from datacenter IPs. Use the browser userscript instead — it runs directly in your browser using your IP.
+1. **Twikit CLI** (recommended) — Python script using Twikit library
+2. **Tampermonkey userscript** — Browser-based, runs in your browser
 
-## Installation (Tampermonkey)
+## Quick Start (Twikit CLI)
 
-1. Install [Tampermonkey](https://www.tampermonkey.net/) browser extension
-2. Open `mass-unfollow.user.js` in this repo
-3. Copy the entire contents
-4. In Tampermonkey, create a new script and paste the code
-5. Save
-6. Go to x.com — you'll see a blue button on the right side
+```bash
+# Install dependencies
+pip install twikit python-dotenv
 
-## Usage
+# Create .env file with your cookies
+cp .env.example .env
+# Edit .env with your auth_token and ct0 from x.com
 
-1. Open x.com and log in
-2. Click the blue button on the right to open Mass Unfollow
-3. Click "Load Following" and wait
-4. Filter by tabs: All, No Tweets, Unknown, Inactive, Active
-5. Set inactivity threshold (30/90/180/365 days)
-6. Click accounts to select them
-7. Click "Unfollow" to remove them
+# Dry run - see inactive accounts without unfollowing
+python mass_unfollow.py --dry-run
 
-## Features
+# Unfollow inactive accounts (>90 days)
+python mass_unfollow.py
 
-- Analyzes your following list
+# Custom threshold
+python mass_unfollow.py --days 180
+
+# Save results to file
+python mass_unfollow.py --output results.json
+```
+
+### How to Get Your Cookies
+
+1. Open [x.com](https://x.com) in Chrome/Firefox
+2. Press F12 to open DevTools
+3. Go to **Application** → **Cookies** → `https://x.com`
+4. Find `auth_token` and `ct0`
+5. Copy values to `.env` file
+
+### Twikit CLI Options
+
+```
+--auth-token    X auth_token cookie (or set AUTH_TOKEN env var)
+--ct0           X ct0 cookie (or set CT0 env var)
+--days          Days threshold for inactivity (default: 90)
+--dry-run       Show inactive accounts but don't unfollow
+--output, -o    Save results to JSON file
+```
+
+## Browser Userscript (Alternative)
+
+If Twikit doesn't work due to IP blocking, use the Tampermonkey userscript:
+
+1. Install [Tampermonkey](https://www.tampermonkey.net/)
+2. Create new script, copy `mass-unfollow.user.js`
+3. Open x.com, click the blue button
+
+## How It Works
+
+- Uses [Twikit](https://github.com/driesroyston/twikit) — Python library for X API
+- Authenticates via cookies (auth_token + ct0), no password needed
+- Fetches your following list (paginated)
 - Checks last tweet date for each account
-- Categorizes: No Tweets, Unknown, Inactive, Active
-- Bulk select and unfollow
-- Rate limit handling (auto-pause and resume)
-- All data stays in your browser
-
-## How it works
-
-Uses X's internal v1.1 REST API directly from your browser:
-
-- `GET /1.1/friends/list.json` — your following list
-- `GET /1.1/statuses/user_timeline.json` — last tweet date
-- `POST /1.1/friendships/destroy.json` — unfollow
-
-Since it runs in your browser, it uses your session cookies and IP address. No server needed.
-
-## Web Server (not recommended)
-
-The backend server at `/backend` exists but won't work for authenticated X API calls because X blocks datacenter IPs. It's included for reference only.
+- Filters accounts inactive > threshold days
+- Bulk unfollows with rate limit handling
 
 ## Files
 
 ```
-mass-unfollow.user.js  — Tampermonkey userscript (main file)
-backend/               — Express server (reference only, auth issues)
-frontend/              — React web app (reference only, auth issues)
+mass_unfollow.py       — Twikit CLI tool (main)
+mass-unfollow.user.js  — Tampermonkey userscript (browser alternative)
+.env.example           — Template for cookies
 ```
 
 ## License
