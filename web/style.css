@@ -67,6 +67,19 @@ body {
     font-size: 16px;
 }
 
+.menu-icon-img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+    vertical-align: middle;
+}
+
+.menu-icon {
+    display: flex;
+    align-items: center;
+    margin-right: 8px;
+}
+
 /* ===== CONTAINER ===== */
 .container {
     flex: 1;
@@ -111,6 +124,12 @@ body {
 
 .titlebar-icon {
     font-size: 14px;
+}
+
+.titlebar-icon-img {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
 }
 
 .titlebar-title {
