@@ -27,11 +27,70 @@ if (existsSync(distPath)) {
 }
 
 // X API constants
-const FALLBACK_BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I7wHoABWeg%3DZHRM8OMAz5e0fhMQqeyqlZMEaYAFIKyRmDQiLHJU4vasE4GMLY'
+let FALLBACK_BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I7wHoABWeg%3DZHRM8OMAz5e0fhMQqeyqlZMEaYAFIKyRmDQiLHJU4vasE4GMLY'
 const UNFOLLOW_DELAY_MS = 2000
 const FETCH_PAGE_DELAY_MS = 600
 const RATE_LIMIT_BACKOFF_MS = 65000
 const ENRICH_CONCURRENCY = 5
+
+// Fetch fresh bearer token from X's JS bundles
+async function fetchBearerToken() {
+  console.log('Fetching fresh bearer token from x.com…')
+  
+  // Strategy 1: Try known bearer token that works with cookies
+  // This is the public web client token that X uses
+  const publicToken = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I7wHoABWeg%3DZHRM8OMAz5e0fhMQqeyqlZMEaYAFIKyRmDQiLHJU4vasE4GMLY'
+  
+  // Test if the public token works with current cookies
+  if (process.env.X_AUTH_TOKEN && process.env.X_CT0) {
+    try {
+      const testRes = await fetch('https://x.com/i/api/1.1/account/verify_credentials.json?include_email=true', {
+        headers: {
+          'authorization': `Bearer ${publicToken}`,
+          'x-csrf-token': process.env.X_CT0,
+          'x-twitter-auth-type': 'OAuth2Session',
+          'x-twitter-active-user': 'yes',
+          'x-twitter-client-language': 'en',
+          'cookie': `ct0=${process.env.X_CT0}; auth_token=${process.env.X_AUTH_TOKEN}`
+        }
+      })
+      
+      if (testRes.ok) {
+        console.log('Public bearer token works!')
+        return publicToken
+      } else {
+        console.log(`Public token test: ${testRes.status}`)
+      }
+    } catch (e) {
+      console.warn('Token test failed:', e.message)
+    }
+  }
+  
+  // Strategy 2: Try to fetch from X's page
+  try {
+    const res = await fetch('https://x.com/i/flow/login', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      redirect: 'follow'
+    })
+    const html = await res.text()
+    
+    // Look for bearer token pattern
+    const pattern = /AAAAAAAAAAAAAAAAAAAAANRILgAAAAA[A-Za-z0-9%+/=]{60,}/g
+    const matches = html.match(pattern)
+    if (matches && matches.length > 0) {
+      console.log('Found bearer token in page')
+      return matches[0]
+    }
+  } catch (e) {
+    console.warn('Failed to fetch bearer token from page:', e.message)
+  }
+  
+  // Fallback to public token
+  console.log('Using public bearer token')
+  return publicToken
+}
 
 // State
 let state = {
@@ -98,8 +157,17 @@ async function xFetch(url, options = {}) {
   }
 
   if (res.status === 401) {
+    // Get response body for debugging
+    const body = await res.text().catch(() => '')
+    console.error('401 Unauthorized details:', {
+      url: shortUrl,
+      body: body.slice(0, 500),
+      hasAuthToken: !!process.env.X_AUTH_TOKEN,
+      hasCt0: !!process.env.X_CT0,
+      hasBearerToken: !!state.bearerToken
+    })
     state.bearerToken = null
-    throw new Error('401 — authentication failed. Check your credentials.')
+    throw new Error(`401 — authentication failed. Response: ${body.slice(0, 200)}`)
   }
 
   if (!res.ok) {
@@ -407,27 +475,59 @@ app.post('/api/login', async (req, res) => {
     return res.json({ success: false, error: 'Missing auth_token or ct0' })
   }
 
+  // Update cookies
+  process.env.X_AUTH_TOKEN = authToken
+  process.env.X_CT0 = ct0
   state.csrfToken = ct0
-  state.bearerToken = FALLBACK_BEARER_TOKEN
+  
+  // Fetch fresh bearer token
+  state.bearerToken = await fetchBearerToken()
   
   try {
-    const data = await xFetch('https://x.com/i/api/1.1/account/verify_credentials.json')
+    // Verify credentials - try multiple endpoints
+    let data = null
     
-    if (data?.id_str) {
-      state.userId = data.id_str
-      state.username = data.screen_name
+    // Try v2 endpoint first
+    try {
+      data = await xFetch('https://x.com/i/api/1.1/account/verify_credentials.json?include_email=true')
+    } catch (e) {
+      // Try alternative endpoint
+      try {
+        data = await xFetch('https://x.com/i/api/1.1/account/verify_credentials.json?skip_status=true')
+      } catch (e2) {
+        // Try without params
+        data = await xFetch('https://x.com/i/api/1.1/account/verify_credentials.json')
+      }
+    }
+    
+    if (data?.id_str || data?.data?.id_str) {
+      state.userId = data.id_str || data?.data?.id_str
+      state.username = data.screen_name || data?.data?.username
       state.isLoggedIn = true
       
-      process.env.X_AUTH_TOKEN = authToken
-      process.env.X_CT0 = ct0
+      console.log(`✓ Logged in as @${state.username} (${state.userId})`)
       
-      res.json({ success: true, userId: state.userId, username: state.username })
+      res.json({ 
+        success: true, 
+        userId: state.userId, 
+        username: state.username,
+        tokenReady: true
+      })
     } else {
       res.json({ success: false, error: 'Invalid credentials' })
     }
   } catch (err) {
     console.error('Login error:', err.message)
-    res.json({ success: false, error: err.message })
+    
+    // If 401, cookies are likely expired or invalid
+    if (err.message.includes('401')) {
+      res.json({ 
+        success: false, 
+        error: 'Your session cookies are expired or invalid. Get fresh cookies from x.com (F12 → Application → Cookies → Copy auth_token & ct0).'
+      })
+    } else {
+      res.json({ success: false, error: err.message })
+    }
   }
 })
 
