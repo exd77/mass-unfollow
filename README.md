@@ -1,82 +1,53 @@
-# Mass Unfollow
+# Mass Unfollow - Production Build
+## CLI + Web Interface
 
-Bulk unfollow inactive X/Twitter accounts using Twikit.
+Bulk unfollow inactive X/Twitter accounts via CLI or Web UI.
 
-## Requirements
+### Features
+- **CLI Mode**: Terminal-based with full automation support
+- **Web UI**: Browser interface with real-time progress
+- **Twikit Backend**: Direct X API via cookies (auth_token + ct0)
+- **Rate Limit Handling**: Auto-pause and resume on rate limits
 
-```bash
-pip install twikit python-dotenv
-```
-
-## Getting Your Credentials
-
-1. Open [x.com](https://x.com) in Chrome/Firefox
-2. Press **F12** → **Application** → **Cookies** → `https://x.com`
-3. Copy these 3 values:
-
-| Cookie | Example | Description |
-|--------|---------|-------------|
-| `auth_token` | `46e6dbb656e552...` | Your session token |
-| `ct0` | `b27b788bd5a4ba...` | CSRF token |
-| `twid` | `u%3D1234567890` | **User ID** is after `u%3D` |
-
-Example: `twid=u%3D1789423657` → User ID = `1789423657`
-
-## Setup .env
+### Quick Start
 
 ```bash
-cp .env.example .env
+# Install dependencies
+pip install twikit python-dotenv fastapi uvicorn
+
+# CLI Mode - Dry run
+python mass_unfollow.py --auth-token TOKEN --ct0 CT0 --user-id ID --dry-run
+
+# CLI Mode - Unfollow
+python mass_unfollow.py --auth-token TOKEN --ct0 CT0 --user-id ID --days 90
+
+# Web UI Mode
+python server.py
+
+# Then open http://localhost:8777
 ```
 
-Edit `.env`:
-```
-AUTH_TOKEN1=your_auth_token
-CT0_1=your_ct0
-USER_ID=your_user_id
-```
-
-## Usage
-
-```bash
-# Dry run - see inactive accounts
-python mass_unfollow.py --dry-run
-
-# Unfollow accounts inactive >90 days
-python mass_unfollow.py
-
-# Custom threshold
-python mass_unfollow.py --days 180
-
-# Direct args (no .env needed)
-python mass_unfollow.py --auth-token TOKEN --ct0 CT0 --user-id ID
-
-# Save results
-python mass_unfollow.py --output results.json
-```
-
-## Options
-
-| Flag | Description |
-|------|-------------|
-| `--auth-token` | X auth_token cookie |
-| `--ct0` | X ct0 cookie |
-| `--user-id` | Your X user ID (from twid cookie) |
-| `--days` | Inactivity threshold in days (default: 90) |
-| `--dry-run` | Show inactive accounts without unfollowing |
-| `--output` | Save results to JSON file |
-
-## How It Works
-
-1. Authenticates with X via cookies using [Twikit](https://github.com/driesroyston/twikit)
-2. Fetches your following list (paginated, 200 per page)
-3. Checks last tweet date for each account
-4. Filters accounts inactive > threshold
-5. Unfollows selected accounts with rate limit handling
-
-## Files
+### Project Structure
 
 ```
-mass_unfollow.py       — Main CLI tool
-mass-unfollow.user.js  — Browser alternative (Tampermonkey)
-.env.example           — Credential template
+mass-unfollow/
+├── mass_unfollow.py       # CLI tool
+├── server.py              # Web server (FastAPI)
+├── web/
+│   ├── index.html         # Frontend UI
+│   ├── style.css          # Styles
+│   └── app.js             # Frontend logic
+├── core/
+│   ├── __init__.py
+│   ├── client.py          # Twikit wrapper
+│   └── models.py          # Data models
+├── .env.example
+└── README.md
 ```
+
+### Credentials
+
+Get from x.com cookies (F12 → Application → Cookies):
+- `auth_token` - Session token
+- `ct0` - CSRF token  
+- `twid` - User ID (format: u%3D123456789 → 123456789)
