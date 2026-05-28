@@ -3,137 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mass Unfollow - X/Twitter</title>
+    <title>Mass Unfollow — X/Twitter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🐦 Mass Unfollow</h1>
-            <p class="subtitle">Find and unfollow inactive X/Twitter accounts</p>
-        </header>
-
-        <!-- Login Form -->
-        <section id="login-section" class="card">
-            <h2>🔐 Login</h2>
-            <p class="help-text">Get credentials from x.com cookies (F12 → Application → Cookies)</p>
-            
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="auth_token">Auth Token</label>
-                    <input type="text" id="auth_token" placeholder="auth_token from x.com cookies" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="ct0">CT0 (CSRF Token)</label>
-                    <input type="text" id="ct0" placeholder="ct0 from x.com cookies" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="user_id">User ID</label>
-                    <input type="text" id="user_id" placeholder="From twid cookie (u%3D12345 → 12345)" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="days_threshold">Inactivity Threshold (days)</label>
-                    <select id="days_threshold">
-                        <option value="30">30 days</option>
-                        <option value="90" selected>90 days</option>
-                        <option value="180">180 days</option>
-                        <option value="365">1 year</option>
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">Connect & Fetch</button>
-            </form>
-        </section>
-
-        <!-- Progress Section -->
-        <section id="progress-section" class="card" style="display: none;">
-            <h2>📊 <span id="progress-title">Loading...</span></h2>
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <p id="progress-text" class="progress-text">0%</p>
-            <p id="progress-detail" class="progress-detail"></p>
-        </section>
-
-        <!-- Results Section -->
-        <section id="results-section" class="card" style="display: none;">
-            <h2>📊 Results</h2>
-            
-            <div class="stats-row">
-                <div class="stat">
-                    <span class="stat-value" id="stat-following">0</span>
-                    <span class="stat-label">Following</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value stat-warning" id="stat-inactive">0</span>
-                    <span class="stat-label">Inactive</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value" id="stat-active">0</span>
-                    <span class="stat-label">Active</span>
-                </div>
-            </div>
-            
-            <div class="tabs">
-                <button class="tab active" data-tab="all">All</button>
-                <button class="tab" data-tab="inactive">Inactive</button>
-                <button class="tab" data-tab="active">Active</button>
-            </div>
-            
-            <div class="filter-row">
-                <label>Filter:</label>
-                <select id="filter-threshold">
-                    <option value="30">> 30 days</option>
-                    <option value="90" selected>> 90 days</option>
-                    <option value="180">> 180 days</option>
-                    <option value="365">> 365 days</option>
-                </select>
-                <button id="btn-select-all" class="btn btn-small">Select All</button>
-                <button id="btn-deselect-all" class="btn btn-small">Deselect All</button>
-            </div>
-            
-            <div id="user-list" class="user-list"></div>
-            
-            <div class="action-row">
-                <button id="btn-unfollow" class="btn btn-danger">
-                    Unfollow Selected (<span id="selected-count">0</span>)
-                </button>
-            </div>
-        </section>
-
-        <!-- Unfollow Progress -->
-        <section id="unfollow-section" class="card" style="display: none;">
-            <h2>🚀 Unfollowing...</h2>
-            <div class="progress-bar">
-                <div id="unfollow-progress-fill" class="progress-fill progress-fill-danger"></div>
-            </div>
-            <p id="unfollow-progress-text" class="progress-text">0%</p>
-            <p id="unfollow-progress-detail" class="progress-detail"></p>
-        </section>
-
-        <!-- Done Section -->
-        <section id="done-section" class="card" style="display: none;">
-            <h2>✅ Complete!</h2>
-            <div class="stats-row">
-                <div class="stat">
-                    <span class="stat-value stat-success" id="result-success">0</span>
-                    <span class="stat-label">Unfollowed</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value stat-danger" id="result-failed">0</span>
-                    <span class="stat-label">Failed</span>
-                </div>
-            </div>
-            <button id="btn-start-over" class="btn btn-primary">Start Over</button>
-        </section>
+    <!-- System Menu Bar -->
+    <div class="menubar">
+        <div class="menubar-left">
+            <span class="menu-icon">&#63743;</span>
+            <span class="menu-item">File</span>
+            <span class="menu-item">Edit</span>
+            <span class="menu-item">View</span>
+            <span class="menu-item">Help</span>
+        </div>
+        <div class="menubar-right">
+            <span class="menu-item">&#128266;</span>
+            <span class="menu-item" id="clock">10:42 AM</span>
+        </div>
     </div>
 
-    <footer>
-        <p>Built with Twikit • <a href="https://github.com/exd77/mass-unfollow">GitHub</a></p>
-    </footer>
+    <div class="container">
+        <!-- Window -->
+        <div class="window">
+            <!-- Title Bar -->
+            <div class="titlebar">
+                <div class="titlebar-left">
+                    <span class="titlebar-icon">&#128101;</span>
+                </div>
+                <div class="titlebar-title">Mass Unfollow — X/Twitter</div>
+                <div class="titlebar-buttons">
+                    <button class="titlebar-btn close">✕</button>
+                    <button class="titlebar-btn maximize">◻</button>
+                    <button class="titlebar-btn minimize">−</button>
+                </div>
+            </div>
+
+            <!-- Window Content -->
+            <div class="window-content">
+                <!-- Session Section -->
+                <div class="section session-section">
+                    <div class="section-header">Session</div>
+                    <div class="session-row">
+                        <div class="input-group">
+                            <label>auth_token</label>
+                            <input type="password" id="auth_token" placeholder="••••••••••••••••">
+                        </div>
+                        <div class="input-group">
+                            <label>ct0</label>
+                            <input type="password" id="ct0" placeholder="••••••••••••••••">
+                        </div>
+                        <div class="input-group">
+                            <label>user_id</label>
+                            <input type="text" id="user_id" placeholder="u%3D123456789">
+                        </div>
+                        <button id="btn-ready" class="btn btn-ready">
+                            <span class="status-dot"></span> Ready
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Controls Section -->
+                <div class="section controls-section">
+                    <button id="btn-load" class="btn btn-primary">
+                        <span class="btn-icon">&#128101;</span> Load Following
+                    </button>
+                    <button id="btn-stop" class="btn" disabled>
+                        <span class="btn-icon">&#9209;</span> Stop
+                    </button>
+                    
+                    <div class="control-group">
+                        <label>Inactive</label>
+                        <select id="days-threshold">
+                            <option value="30">30 days</option>
+                            <option value="90" selected>90 days</option>
+                            <option value="180">180 days</option>
+                            <option value="365">365 days</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Sort</label>
+                        <select id="sort-by">
+                            <option value="last_activity" selected>Last Activity</option>
+                            <option value="name">Name</option>
+                            <option value="followers">Followers</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-clear" class="btn">
+                        <span class="btn-icon">&#128465;</span> Clear Cache
+                    </button>
+                </div>
+
+                <!-- Progress Section -->
+                <div class="section progress-section" id="progress-section">
+                    <div class="progress-row">
+                        <span class="progress-label">Fetching following...</span>
+                        <span class="progress-count" id="fetch-count">0 users</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="fetch-progress" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="progress-row">
+                        <span class="progress-label">Unfollow queue</span>
+                        <span class="progress-count" id="unfollow-count">0 / 0</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill progress-fill-danger" id="unfollow-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="tabs">
+                    <button class="tab" data-tab="no-tweets">
+                        No Tweets <span class="tab-count" id="count-no-tweets">0</span>
+                    </button>
+                    <button class="tab" data-tab="unknown">
+                        Unknown <span class="tab-count" id="count-unknown">0</span>
+                    </button>
+                    <button class="tab active" data-tab="inactive">
+                        Inactive <span class="tab-count" id="count-inactive">0</span>
+                    </button>
+                    <button class="tab" data-tab="active">
+                        Active <span class="tab-count" id="count-active">0</span>
+                    </button>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="main-content">
+                    <!-- User List Table -->
+                    <div class="user-table-container">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-check">
+                                        <input type="checkbox" id="select-all">
+                                    </th>
+                                    <th class="col-user">User</th>
+                                    <th class="col-activity" id="sort-activity">
+                                        Last Activity <span class="sort-arrow">▼</span>
+                                    </th>
+                                    <th class="col-followers">Followers</th>
+                                    <th class="col-status">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-list">
+                                <tr class="empty-row">
+                                    <td colspan="5">No accounts loaded. Click "Load Following" to start.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary Panel -->
+                    <div class="summary-panel">
+                        <div class="summary-section">
+                            <div class="summary-header">Summary</div>
+                            <div class="summary-row">
+                                <span>Total Loaded</span>
+                                <span id="stat-total">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>No Tweets</span>
+                                <span id="stat-no-tweets">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Unknown</span>
+                                <span id="stat-unknown">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Inactive</span>
+                                <span class="stat-warning" id="stat-inactive">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Active</span>
+                                <span class="stat-good" id="stat-active">0</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <div class="summary-header">Selection</div>
+                            <div class="summary-row">
+                                <span>Selected</span>
+                                <span id="stat-selected">0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Will Unfollow</span>
+                                <span class="stat-danger" id="stat-will-unfollow">0</span>
+                            </div>
+                        </div>
+
+                        <button id="btn-unfollow" class="btn btn-danger btn-full" disabled>
+                            <span class="btn-icon">&#128200;</span> Unfollow Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="statusbar">
+        <span id="status-text">Ready — Enter credentials and click Load Following</span>
+        <span id="status-right">v1.0.0</span>
+    </div>
 
     <script src="/static/app.js"></script>
 </body>
