@@ -18,9 +18,15 @@ class TwikitClient:
     def __init__(self, auth_token: str, ct0: str, user_id: str):
         self.auth_token = auth_token
         self.ct0 = ct0
-        self.user_id = user_id
+        # Extract numeric user_id from various formats:
+        # - "893572869560520704" (plain)
+        # - "u%3D893572869560520704" (URL-encoded from twid cookie)
+        # - "u=893572869560520704" (decoded from twid cookie)
+        import re
+        match = re.search(r'(\d{10,})', str(user_id))
+        self.user_id = match.group(1) if match else str(user_id)
         self.client = Client('en-US')
-        self.session = Session(auth_token=auth_token, ct0=ct0, user_id=user_id)
+        self.session = Session(auth_token=auth_token, ct0=ct0, user_id=self.user_id)
         
         # Set cookies
         self.client.set_cookies({
