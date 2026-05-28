@@ -1,0 +1,11 @@
+/* Macintosh Classic Font Fallbacks */
+/* ChicagoFLF — system font for Mac OS 7-9 */
+/* Use Geneva as primary fallback (Mac OS X system font) */
+
+@font-face {
+  font-family: 'ChicagoFLF';
+  src: local('ChicagoFLF'), local('Chicago'), local('Geneva');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
